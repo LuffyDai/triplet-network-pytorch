@@ -91,7 +91,8 @@ class MNIST_t(data.Dataset):
             os.path.exists(os.path.join(self.root, self.processed_folder, self.test_triplet_file))
 
     def download(self):
-        from six.moves import urllib
+        from urllib2 import Request
+        import urllib2
         import gzip
 
         if self._check_exists():
@@ -109,13 +110,13 @@ class MNIST_t(data.Dataset):
 
         for url in self.urls:
             print('Downloading ' + url)
-            data = urllib.request.urlopen(url)
+            data = urllib2.urlopen(Request(url))
             filename = url.rpartition('/')[2]
             file_path = os.path.join(self.root, self.raw_folder, filename)
             with open(file_path, 'wb') as f:
                 f.write(data.read())
             with open(file_path.replace('.gz', ''), 'wb') as out_f, \
-                    gzip.GzipFile(file_path) as zip_f:
+                    gzip.open(file_path) as zip_f:
                 out_f.write(zip_f.read())
             os.unlink(file_path)
 
