@@ -59,9 +59,11 @@ class MNIST_t(data.Dataset):
         if self.train:
             idx1, idx2, idx3 = self.triplets_train[index]
             img1, img2, img3 = self.train_data[idx1], self.train_data[idx2], self.train_data[idx3]
+            label1, label2, label3 = self.train_labels[idx1], self.train_labels[idx2], self.train_labels[idx3]
         else:
             idx1, idx2, idx3 = self.triplets_test[index]
             img1, img2, img3 = self.test_data[idx1], self.test_data[idx2], self.test_data[idx3]
+            label1, label2, lablel3 = self.test_labels[idx1], self.test_labels[idx2], self.test_labels[idx3]
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
@@ -74,7 +76,7 @@ class MNIST_t(data.Dataset):
             img2 = self.transform(img2)
             img3 = self.transform(img3)
 
-        return img1, img2, img3
+        return (img1, label1), (img2, label2), (img3, label3)
 
     def __len__(self):
         if self.train:
