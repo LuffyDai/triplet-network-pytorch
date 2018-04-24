@@ -15,6 +15,7 @@ from tripletnet import Tripletnet
 # from visdom import Visdom
 from tensorboardX import SummaryWriter
 from logbook import Logger
+from nets import *
 import numpy as np
 
 logger = Logger('triplet-net')
@@ -92,7 +93,7 @@ def main():
             x = F.dropout(x, training=self.training)
             return self.fc2(x)
 
-    model = Net()
+    model = MNISTNet()
     tnet = Tripletnet(model)
     if args.cuda:
         tnet.cuda()
