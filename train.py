@@ -171,9 +171,10 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
 
         writer.add_scalar('train_loss', loss_triplet.data[0], n_iter)
         writer.add_scalar('train_acc', acc, n_iter)
-        writer.add_embedding(embedded_x, metadata=label1.data, label_img=data1.data, global_step=n_iter)
-        writer.add_embedding(embedded_y, metadata=label2.data, label_img=data2.data, global_step=n_iter)
-        writer.add_embedding(embedded_z, metadata=label3.data, label_img=data3.data, global_step=n_iter)
+        label_batch = Variable(label1, requires_grad=False).long()
+        writer.add_embedding(embedded_x.data, metadata=label_batch.data, global_step=n_iter)
+        #writer.add_embedding(embedded_y, metadata=label2.data, label_img=data2.data, global_step=n_iter)
+        #writer.add_embedding(embedded_z, metadata=label3.data, label_img=data3.data, global_step=n_iter)
 
         # compute gradient and do optimizer step
         optimizer.zero_grad()
