@@ -45,8 +45,9 @@ class MNISTNet(nn.Module):
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.dropout(F.relu(self.conv3(x)), training=self.training)
-        x = x.view(-1, 1)
+        x = F.max_pool2d(self.conv3(x), 2)
+        x = F.dropout(F.relu(x), training=self.training)
+        x = x.view(-1, 128)
         x = self.fc(x)
         return x
 

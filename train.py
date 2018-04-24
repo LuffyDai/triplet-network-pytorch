@@ -133,6 +133,7 @@ def main():
             'state_dict': tnet.state_dict(),
             'best_prec1': best_acc,
         }, is_best)
+    writer.close()
 
 def train(train_loader, tnet, criterion, optimizer, epoch):
 
