@@ -214,13 +214,20 @@ def test(test_loader, tnet, criterion, epoch):
         acc = accuracy(dista, distb)
         accs.update(acc, data1.size(0))
         losses.update(test_loss, data1.size(0))
-        label_batch = Variable(label1, requires_grad=False).long()
-        writer.add_embedding(embedded_x.data, metadata=label_batch.data, global_step=epoch)
+        if batch_idx == 0:
+            label = label1
+            out = embedded_x.data
+        else:
+            label = torch.cat((label, label1), 0)
+            out = torch.cat((out, embedded_x.data), 0)
+
+    label_batch = Variable(label, requires_grad=False).long()
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
         losses.avg, 100. * accs.avg))
     writer.add_scalar('test_loss', losses.avg, epoch)
     writer.add_scalar('test_acc', accs.avg, epoch)
+    writer.add_embedding(out, metadata=label_batch.data, global_step=epoch)
 
     return accs.avg
 
