@@ -27,7 +27,7 @@ class MNIST_t(data.Dataset):
 
     def __init__(self, root,  n_train_triplets=50000, n_test_triplets=10000, train=True, transform=None, target_transform=None, download=False):
         self.root = root
-        
+
         self.transform = transform
         self.train = train  # training set or test set
 
@@ -63,7 +63,7 @@ class MNIST_t(data.Dataset):
         else:
             idx1, idx2, idx3 = self.triplets_test[index]
             img1, img2, img3 = self.test_data[idx1], self.test_data[idx2], self.test_data[idx3]
-            label1, label2, lablel3 = self.test_labels[idx1], self.test_labels[idx2], self.test_labels[idx3]
+            label1, label2, label3 = self.test_labels[idx1], self.test_labels[idx2], self.test_labels[idx3]
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
@@ -160,7 +160,7 @@ class MNIST_t(data.Dataset):
             c = np.random.choice(np.where(np_labels!=class_idx)[0], int(ntriplets/10), replace=True)
 
             for i in range(a.shape[0]):
-                triplets.append([int(a[i]), int(c[i]), int(b[i])])           
+                triplets.append([int(a[i]), int(c[i]), int(b[i])])
 
         with open(os.path.join(self.root, self.processed_folder, filename), "w") as f:
             writer = csv.writer(f, delimiter=' ')
