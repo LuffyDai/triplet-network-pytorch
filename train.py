@@ -45,13 +45,13 @@ parser.add_argument('--name', default='TripletNet', type=str,
                     help='name of experiment')
 
 best_acc = 0
+n_iter = 0
 
 
 def main():
 
-    global args, best_acc, writer, n_iter
+    global args, best_acc, writer
     writer = SummaryWriter(comment='mnist_triplet_network')
-    n_iter = 0
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
@@ -62,14 +62,14 @@ def main():
 
     kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}  # change num_workers from 1 to 4
     train_loader = torch.utils.data.DataLoader(
-        MNIST_t('../data', train=True, download=True,
+        MNIST_t('data', train=True, download=True,
                        transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
-        MNIST_t('../data', train=False, transform=transforms.Compose([
+        MNIST_t('data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
@@ -100,15 +100,15 @@ def main():
     # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
-            logger.info("=> loading checkpoint '{}'".format(args.resume))
+            print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
             tnet.load_state_dict(checkpoint['state_dict'])
-            logger.info("=> loaded checkpoint '{}' (epoch {})"
-                    .format(args.resume, checkpoint['epoch']))
+            print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(args.resume, checkpoint['epoch']))
         else:
-            logger.info("=> no checkpoint found at '{}'".format(args.resume))
+            print("=> no checkpoint found at '{}'".format(args.resume))
 
     cudnn.benchmark = True
 
@@ -116,7 +116,7 @@ def main():
     optimizer = optim.SGD(tnet.parameters(), lr=args.lr, momentum=args.momentum)
 
     n_parameters = sum([p.data.nelement() for p in tnet.parameters()])
-    logger.info('  + Number of params: {}'.format(n_parameters))
+    print('  + Number of params: {}'.format(n_parameters))
 
     for epoch in range(1, args.epochs + 1):
         # train for one epoch
@@ -135,6 +135,7 @@ def main():
 
 def train(train_loader, tnet, criterion, optimizer, epoch):
 
+    global n_iter
 
     losses = AverageMeter()
     accs = AverageMeter()
@@ -155,21 +156,21 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
         if args.cuda:
             target = target.cuda()
         target = Variable(target)
-        
+
         loss_triplet = criterion(dista, distb, target)
         loss_embedd = embedded_x.norm(2) + embedded_y.norm(2) + embedded_z.norm(2)
         loss = loss_triplet + 0.001 * loss_embedd
 
         n_iter += 1
-        writer.add_scalar('loss_triplet', loss_triplet.data[0], n_iter)
-        writer.add_scalar('loss_embedd', loss_embedd.data[0], n_iter)
 
         # measure accuracy and record loss
         acc = accuracy(dista, distb)
-        writer.add_scalar('acc_metric', acc.data[0], n_iter)
         losses.update(loss_triplet.data[0], data1.size(0))
         accs.update(acc, data1.size(0))
         emb_norms.update(loss_embedd.data[0]/3, data1.size(0))
+
+        writer.add_scalar('train_loss', loss_triplet.data[0], n_iter)
+        writer.add_scalar('train_acc', acc, n_iter)
 
         # compute gradient and do optimizer step
         optimizer.zero_grad()
@@ -177,12 +178,12 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
         optimizer.step()
 
         if batch_idx % args.log_interval == 0:
-            logger.info('Train Epoch: {} [{}/{}]\t'
+            print('Train Epoch: {} [{}/{}]\t'
                   'Loss: {:.4f} ({:.4f}) \t'
                   'Acc: {:.2f}% ({:.2f}%) \t'
                   'Emb_Norm: {:.2f} ({:.2f})'.format(
                 epoch, batch_idx * len(data1), len(train_loader.dataset),
-                losses.val, losses.avg, 
+                losses.val, losses.avg,
                 100. * accs.val, 100. * accs.avg, emb_norms.val, emb_norms.avg))
     # log avg values to somewhere
 
@@ -208,9 +209,9 @@ def test(test_loader, tnet, criterion, epoch):
         # measure accuracy and record loss
         acc = accuracy(dista, distb)
         accs.update(acc, data1.size(0))
-        losses.update(test_loss, data1.size(0))      
+        losses.update(test_loss, data1.size(0))
 
-    logger.info('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
         losses.avg, 100. * accs.avg))
     writer.add_scalar('test_loss', losses.avg, epoch)
     writer.add_scalar('test_acc', accs.avg, epoch)
@@ -251,4 +252,4 @@ def accuracy(dista, distb):
     return (pred > 0).sum()*1.0/dista.size()[0]
 
 if __name__ == '__main__':
-    main()    
+    main()
