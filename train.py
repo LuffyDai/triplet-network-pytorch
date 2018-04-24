@@ -12,8 +12,12 @@ import torch.backends.cudnn as cudnn
 from triplet_mnist_loader import MNIST_t
 from triplet_image_loader import TripletImageLoader
 from tripletnet import Tripletnet
-from visdom import Visdom
+# from visdom import Visdom
+from tensorboardX import SummaryWriter
+from logbook import Logger
 import numpy as np
+
+logger = Logger('triplet-net')
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -44,16 +48,19 @@ best_acc = 0
 
 
 def main():
-    global args, best_acc
+
+    global args, best_acc, writer, n_iter
+    writer = SummaryWriter(comment='mnist_triplet_network')
+    n_iter = 0
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
-    global plotter 
-    plotter = VisdomLinePlotter(env_name=args.name)
+    # global plotter
+    # plotter = VisdomLinePlotter(env_name=args.name)
 
-    kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+    kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}  # change num_workers from 1 to 4
     train_loader = torch.utils.data.DataLoader(
         MNIST_t('../data', train=True, download=True,
                        transform=transforms.Compose([
@@ -93,15 +100,15 @@ def main():
     # optionally resume from a checkpoint
     if args.resume:
         if os.path.isfile(args.resume):
-            print("=> loading checkpoint '{}'".format(args.resume))
+            logger.info("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
             tnet.load_state_dict(checkpoint['state_dict'])
-            print("=> loaded checkpoint '{}' (epoch {})"
+            logger.info("=> loaded checkpoint '{}' (epoch {})"
                     .format(args.resume, checkpoint['epoch']))
         else:
-            print("=> no checkpoint found at '{}'".format(args.resume))
+            logger.info("=> no checkpoint found at '{}'".format(args.resume))
 
     cudnn.benchmark = True
 
@@ -109,7 +116,7 @@ def main():
     optimizer = optim.SGD(tnet.parameters(), lr=args.lr, momentum=args.momentum)
 
     n_parameters = sum([p.data.nelement() for p in tnet.parameters()])
-    print('  + Number of params: {}'.format(n_parameters))
+    logger.info('  + Number of params: {}'.format(n_parameters))
 
     for epoch in range(1, args.epochs + 1):
         # train for one epoch
@@ -127,6 +134,8 @@ def main():
         }, is_best)
 
 def train(train_loader, tnet, criterion, optimizer, epoch):
+
+
     losses = AverageMeter()
     accs = AverageMeter()
     emb_norms = AverageMeter()
@@ -134,6 +143,7 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
     # switch to train mode
     tnet.train()
     for batch_idx, (data1, data2, data3) in enumerate(train_loader):
+
         if args.cuda:
             data1, data2, data3 = data1.cuda(), data2.cuda(), data3.cuda()
         data1, data2, data3 = Variable(data1), Variable(data2), Variable(data3)
@@ -150,8 +160,13 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
         loss_embedd = embedded_x.norm(2) + embedded_y.norm(2) + embedded_z.norm(2)
         loss = loss_triplet + 0.001 * loss_embedd
 
+        n_iter += 1
+        writer.add_scalar('loss_triplet', loss_triplet.data[0], n_iter)
+        writer.add_scalar('loss_embedd', loss_embedd.data[0], n_iter)
+
         # measure accuracy and record loss
         acc = accuracy(dista, distb)
+        writer.add_scalar('acc_metric', acc.data[0], n_iter)
         losses.update(loss_triplet.data[0], data1.size(0))
         accs.update(acc, data1.size(0))
         emb_norms.update(loss_embedd.data[0]/3, data1.size(0))
@@ -162,7 +177,7 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
         optimizer.step()
 
         if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{}]\t'
+            logger.info('Train Epoch: {} [{}/{}]\t'
                   'Loss: {:.4f} ({:.4f}) \t'
                   'Acc: {:.2f}% ({:.2f}%) \t'
                   'Emb_Norm: {:.2f} ({:.2f})'.format(
@@ -170,9 +185,6 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
                 losses.val, losses.avg, 
                 100. * accs.val, 100. * accs.avg, emb_norms.val, emb_norms.avg))
     # log avg values to somewhere
-    plotter.plot('acc', 'train', epoch, accs.avg)
-    plotter.plot('loss', 'train', epoch, losses.avg)
-    plotter.plot('emb_norms', 'train', epoch, emb_norms.avg)
 
 def test(test_loader, tnet, criterion, epoch):
     losses = AverageMeter()
@@ -198,10 +210,11 @@ def test(test_loader, tnet, criterion, epoch):
         accs.update(acc, data1.size(0))
         losses.update(test_loss, data1.size(0))      
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
+    logger.info('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
         losses.avg, 100. * accs.avg))
-    plotter.plot('acc', 'test', epoch, accs.avg)
-    plotter.plot('loss', 'test', epoch, losses.avg)
+    writer.add_scalar('test_loss', losses.avg, epoch)
+    writer.add_scalar('test_acc', accs.avg, epoch)
+
     return accs.avg
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
@@ -214,22 +227,6 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     if is_best:
         shutil.copyfile(filename, 'runs/%s/'%(args.name) + 'model_best.pth.tar')
 
-class VisdomLinePlotter(object):
-    """Plots to Visdom"""
-    def __init__(self, env_name='main'):
-        self.viz = Visdom()
-        self.env = env_name
-        self.plots = {}
-    def plot(self, var_name, split_name, x, y):
-        if var_name not in self.plots:
-            self.plots[var_name] = self.viz.line(X=np.array([x,x]), Y=np.array([y,y]), env=self.env, opts=dict(
-                legend=[split_name],
-                title=var_name,
-                xlabel='Epochs',
-                ylabel=var_name
-            ))
-        else:
-            self.viz.updateTrace(X=np.array([x]), Y=np.array([y]), env=self.env, win=self.plots[var_name], name=split_name)
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
