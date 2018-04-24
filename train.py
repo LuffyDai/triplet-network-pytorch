@@ -143,7 +143,7 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
 
     # switch to train mode
     tnet.train()
-    for batch_idx, (data1, data2, data3) in enumerate(train_loader):
+    for batch_idx, ((data1, label1), (data2, label2), (data3, label3)) in enumerate(train_loader):
 
         if args.cuda:
             data1, data2, data3 = data1.cuda(), data2.cuda(), data3.cuda()
@@ -171,6 +171,9 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
 
         writer.add_scalar('train_loss', loss_triplet.data[0], n_iter)
         writer.add_scalar('train_acc', acc, n_iter)
+        writer.add_embedding(embedded_x, metadata=label1.data, label_img=data1.data, global_step=n_iter)
+        writer.add_embedding(embedded_y, metadata=label2.data, label_img=data2.data, global_step=n_iter)
+        writer.add_embedding(embedded_z, metadata=label3.data, label_img=data3.data, global_step=n_iter)
 
         # compute gradient and do optimizer step
         optimizer.zero_grad()
@@ -193,7 +196,7 @@ def test(test_loader, tnet, criterion, epoch):
 
     # switch to evaluation mode
     tnet.eval()
-    for batch_idx, (data1, data2, data3) in enumerate(test_loader):
+    for batch_idx, ((data1, label1), (data2, label2), (data3, label3)) in enumerate(test_loader):
         if args.cuda:
             data1, data2, data3 = data1.cuda(), data2.cuda(), data3.cuda()
         data1, data2, data3 = Variable(data1), Variable(data2), Variable(data3)
