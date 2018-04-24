@@ -171,8 +171,8 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
 
         writer.add_scalar('train_loss', loss_triplet.data[0], n_iter)
         writer.add_scalar('train_acc', acc, n_iter)
-        label_batch = Variable(label1, requires_grad=False).long()
-        writer.add_embedding(embedded_x.data, metadata=label_batch.data, global_step=n_iter)
+        #label_batch = Variable(label1, requires_grad=False).long()
+        #writer.add_embedding(embedded_x.data, metadata=label_batch.data, global_step=n_iter)
         #writer.add_embedding(embedded_y, metadata=label2.data, label_img=data2.data, global_step=n_iter)
         #writer.add_embedding(embedded_z, metadata=label3.data, label_img=data3.data, global_step=n_iter)
 
@@ -203,7 +203,7 @@ def test(test_loader, tnet, criterion, epoch):
         data1, data2, data3 = Variable(data1), Variable(data2), Variable(data3)
 
         # compute output
-        dista, distb, _, _, _ = tnet(data1, data2, data3)
+        dista, distb, embedded_x, _, _ = tnet(data1, data2, data3)
         target = torch.FloatTensor(dista.size()).fill_(1)
         if args.cuda:
             target = target.cuda()
@@ -214,6 +214,8 @@ def test(test_loader, tnet, criterion, epoch):
         acc = accuracy(dista, distb)
         accs.update(acc, data1.size(0))
         losses.update(test_loss, data1.size(0))
+        label_batch = Variable(label1, requires_grad=False).long()
+        writer.add_embedding(embedded_x.data, metadata=label_batch.data, global_step=epoch)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
         losses.avg, 100. * accs.avg))
