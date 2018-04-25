@@ -13,10 +13,13 @@ class cifarANDsvhnNet(nn.Module):
         self.conv4 = nn.Conv2d(256, 128, kernel_size=2)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.relu(F.max_pool2d(self.conv3(x), 2))
-        x = F.dropout(self.conv4(x), training=self.training)
+        x = F.max_pool2d(F.relu(self.conv1(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.max_pool2d(F.relu(self.conv3(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.relu(self.conv4(x))
         x = x.view(-1, 128)
         return x
 
@@ -29,10 +32,13 @@ class STL10Net(nn.Module):
         self.conv4 = nn.Conv2d(256, 128, kernel_size=2)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.relu(F.max_pool2d(self.conv3(x), 2))
-        x = F.dropout(self.conv4(x), training=self.training)
+        x = F.max_pool2d(F.relu(self.conv1(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.max_pool2d(F.relu(self.conv3(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.relu(self.conv4(x))
         x = x.view(-1, 128)
         return x
 
@@ -45,10 +51,11 @@ class MNISTNet(nn.Module):
         self.fc = nn.Linear(128, 10)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.max_pool2d(self.conv3(x), 2)
-        x = F.dropout(F.relu(x), training=self.training)
+        x = F.max_pool2d(F.relu(self.conv1(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.max_pool2d(F.relu(self.conv3(x)), 2)
         x = x.view(-1, 128)
         # x = self.fc(x)
         return x
