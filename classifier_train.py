@@ -1,4 +1,5 @@
 # train classifier
+
 from __future__ import print_function
 import torch
 import torch.nn as nn
@@ -12,7 +13,7 @@ from utils.misc import model_snapshot
 
 
 def classifier(embedding, train_data, val_data, writer,
-               epochs=20,
+               epochs=30,
                cuda=True,
                log_interval=100,
                test_interval=1,
