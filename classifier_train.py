@@ -16,10 +16,12 @@ def classifier(embedding, train_data, val_data, writer,
                cuda=True,
                log_interval=100,
                test_interval=1,
-               lr=0.1):
-
+               lr=0.1,
+               logdir='log/default'):
     assert isinstance(embedding, nn.Module), 'Embedding is not a module'
     model = Classifier(embedding)
+    if not os.path.exists(logdir):
+        os.makedirs(logdir)
     n_iter = 0
     if cuda:
         model.cuda()
@@ -61,7 +63,7 @@ def classifier(embedding, train_data, val_data, writer,
             eta = speed_epoch * epochs - elapse_time
             print('Elapsed {:.2f}s, {:.2f}s/epoch, {:.2f}s/batch, ets{:.2f}s'.format(
                 elapse_time, speed_epoch, speed_batch, eta))
-            model_snapshot(model, os.path.join('log/default', 'latest.pth'))
+            model_snapshot(model, os.path.join(logdir, 'latest.pth'))
 
             if epoch % test_interval == 0:
                 model.eval()
@@ -82,7 +84,7 @@ def classifier(embedding, train_data, val_data, writer,
                 print('\tTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
                     test_loss, correct, len(val_data.dataset), acc))
                 if acc > best_acc:
-                    new_file = os.path.join('log/default', 'best-{}.pth'.format(epoch))
+                    new_file = os.path.join(logdir, 'best-{}.pth'.format(epoch))
                     model_snapshot(model, new_file, old_file=old_file, verbose=True)
                     best_acc = acc
                     old_file = new_file
