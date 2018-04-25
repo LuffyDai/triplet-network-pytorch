@@ -50,7 +50,7 @@ class MNISTNet(nn.Module):
         x = F.max_pool2d(self.conv3(x), 2)
         x = F.dropout(F.relu(x), training=self.training)
         x = x.view(-1, 128)
-        x = self.fc(x)
+        # x = self.fc(x)
         return x
 
 
