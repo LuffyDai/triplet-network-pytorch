@@ -10,9 +10,11 @@ else:
 
 import torch.utils.data as data
 from torchvision.datasets.utils import download_url, check_integrity
-from .base import TripletBase
+from torchvision import transforms
+from .base import Dataset as Base
 
-class T_CIFAR10(TripletBase):
+
+class Dataset(Base):
     base_folder = 'cifar-10-batches-py'
     url = "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
     filename = "cifar-10-python.tar.gz"
@@ -31,12 +33,19 @@ class T_CIFAR10(TripletBase):
     ]
     n_train_triplets = 50000
     n_test_triplets = 10000
+    name = 'cifar10'
 
-    def __init__(self, root, train=True,
-                 transform=None, target_transform=None,
-                 download=True):
+    def __init__(self, root, is_triplet=True, train=True, transform=None,
+                 target_transform=None, download=True):
         self.root = os.path.expanduser(root)
-        self.transform = transform
+        self.is_triplet = is_triplet
+        if transform is None:
+            self.transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
+        else:
+            self.transform = transform
         self.target_transform = target_transform
         self.train = train
 
@@ -85,7 +94,7 @@ class T_CIFAR10(TripletBase):
             fo.close()
             self.test_data = self.test_data.reshape((self.n_test_triplets, 3, 32, 32))
             self.test_data = self.test_data.transpose((0, 2, 3 ,1))
-        super(T_CIFAR10, self).__init__()
+        super(Dataset, self).__init__()
 
     def _check_integrity(self):
         root = self.root
@@ -115,30 +124,48 @@ class T_CIFAR10(TripletBase):
         os.chdir(cwd)
 
     def __getitem__(self, index):
-        if self.train:
-            idx1, idx2, idx3 = self.triplets_train[index]
-            img1, img2, img3 = self.train_data[idx1], self.train_data[idx2], self.train_data[idx3]
-            target1, target2, target3 = self.train_labels[idx1], self.train_labels[idx2], self.train_labels[idx3]
+        if self.is_triplet:
+            if self.train:
+                idx1, idx2, idx3 = self.triplets_train[index]
+                img1, img2, img3 = self.train_data[idx1], self.train_data[idx2], self.train_data[idx3]
+                target1, target2, target3 = self.train_labels[idx1], self.train_labels[idx2], self.train_labels[idx3]
+            else:
+                idx1, idx2, idx3 = self.triplets_test[index]
+                img1, img2, img3 = self.test_data[idx1], self.test_data[idx2], self.test_data[idx3]
+                target1, target2, target3 = self.test_labels[idx1], self.test_labels[idx2], self.test_labels[idx3]
+
+            img1 = Image.fromarray(img1)
+            img2 = Image.fromarray(img2)
+            img3 = Image.fromarray(img3)
+
+            if self.transform is not None:
+                img1 = self.transform(img1)
+                img2 = self.transform(img2)
+                img3 = self.transform(img3)
+
+            if self.target_transform is not None:
+                target1 = self.target_transform(target1)
+                target2 = self.target_transform(target2)
+                target3 = self.target_transform(target3)
+
+            return (img1, target1), (img2, target2), (img3, target3)
         else:
-            idx1, idx2, idx3 = self.triplets_test[index]
-            img1, img2, img3 = self.test_data[idx1], self.test_data[idx2], self.test_data[idx3]
-            target1, target2, target3 = self.test_labels[idx1], self.test_labels[idx2], self.test_labels[idx3]
+            if self.train:
+                img = self.train_data[index]
+                target = self.train_labels[index]
+            else:
+                img = self.test_data[index]
+                target = self.test_labels[index]
 
-        img1 = Image.fromarray(img1)
-        img2 = Image.fromarray(img2)
-        img3 = Image.fromarray(img3)
+            img = Image.fromarray(img)
 
-        if self.transform is not None:
-            img1 = self.transform(img1)
-            img2 = self.transform(img2)
-            img3 = self.transform(img3)
+            if self.transform is not None:
+                img = self.transform(img)
 
-        if self.target_transform is not None:
-            target1 = self.target_transform(target1)
-            target2 = self.target_transform(target2)
-            target3 = self.target_transform(target3)
+            if self.target_transform is not None:
+                target = self.target_transform(target)
 
-        return (img1, target1), (img2, target2), (img3, target3)
+            return img, target
 
 
 

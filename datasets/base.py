@@ -4,8 +4,10 @@ import os
 import numpy as np
 import csv
 import errno
+from . import Dataset as Base
 
-class TripletBase(data.Dataset):
+
+class Dataset(data.Dataset, Base):
     train_triplet_file = 'train_triplets.txt'
     test_triplet_file = 'test_triplets.txt'
     processed_folder = 'processed'
@@ -73,5 +75,13 @@ class TripletBase(data.Dataset):
             writer = csv.writer(f, delimiter=' ')
             writer.writerows(triplets)
         print('Done!')
+
+    @classmethod
+    def parse(cls, text):
+        if cls is not Dataset and text == cls.name:
+            return cls(root=os.path.join('data', cls.name), train=True), \
+                   cls(root=os.path.join('data', cls.name), train=False), \
+                   cls(root=os.path.join('data', cls.name), is_triplet=False, train=True), \
+                   cls(root=os.path.join('data', cls.name), is_triplet=False, train=False)
 
 
