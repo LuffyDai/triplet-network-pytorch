@@ -18,7 +18,7 @@ from logbook import Logger
 from nets import *
 import numpy as np
 from classifier_train import classifier
-from datasets import *
+from datasets import Dataset
 
 
 logger = Logger('triplet-net')
@@ -47,6 +47,8 @@ parser.add_argument('--resume', default='', type=str,
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('--name', default='cifar10', type=str,
                     help='name of experiment')
+parser.add_argument('--net', default='cifarANDsvhnNet', type=str,
+                    help='name of network to use')
 
 best_acc = 0
 n_iter = 0
@@ -55,8 +57,8 @@ n_iter = 0
 def main():
 
     global args, best_acc, writer
-    writer = SummaryWriter(comment='mnist_triplet_network')
     args = parser.parse_args()
+    writer = SummaryWriter(comment=args.name + '_triplet_network')
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
     if args.cuda:
@@ -65,59 +67,13 @@ def main():
     # plotter = VisdomLinePlotter(env_name=args.name)
 
     kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}  # change num_workers from 1 to 4
-    train_loader = torch.utils.data.DataLoader(
-        MNIST_t('data', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-    test_loader = torch.utils.data.DataLoader(
-        MNIST_t('data', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
 
-    mnist_train = torch.utils.data.DataLoader(
-        datasets.CIFAR10(
-            root='data/cifar10', train=True, download=True,
-            transform=transforms.Compose([
-                transforms.Pad(4),
-                transforms.RandomCrop(32),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-            ])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
+    train_triplet_loader, test_triplet_loader, train_loader, test_loader = Dataset.from_name(args.name)
 
-    mnist_test = torch.utils.data.DataLoader(
-        datasets.CIFAR10(
-            root='data/cifar10', train=False, download=True,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-            ])),
-        batch_size=args.batch_size, shuffle=False, **kwargs)
-
-    train_loader = torch.utils.data.DataLoader(
-        T_CIFAR10(
-            root='data/cifar10/', train=True, download=True,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-            ])), batch_size=args.batch_size, shuffle=True, **kwargs)
-
-    test_loader = torch.utils.data.DataLoader(
-        T_CIFAR10(
-            root='data/cifar10/', train=False, download=True,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-            ])), batch_size=args.batch_size, shuffle=False, **kwargs)
-
-
-    model = cifarANDsvhnNet()
+    cmd = "model=%s()" % args.net
+    local_dict = locals()
+    exec(cmd, globals(), local_dict)
+    model = local_dict['model']
     tnet = Tripletnet(model)
     if args.cuda:
         tnet.cuda()
@@ -145,9 +101,9 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         # train for one epoch
-        train(train_loader, tnet, criterion, optimizer, epoch)
+        train(train_triplet_loader, tnet, criterion, optimizer, epoch)
         # evaluate on validation set
-        acc = test(test_loader, tnet, criterion, epoch)
+        acc = test(test_triplet_loader, tnet, criterion, epoch)
 
         # remember best acc and save checkpoint
         is_best = acc > best_acc
@@ -164,7 +120,7 @@ def main():
     model = cifarANDsvhnNet()
     tnet = Tripletnet(model)
     tnet.load_state_dict(checkpoint_cl['state_dict'])
-    classifier(tnet.embeddingnet, mnist_train, mnist_test, writer)
+    classifier(tnet.embeddingnet, train_loader, test_loader, writer)
 
     writer.close()
 
