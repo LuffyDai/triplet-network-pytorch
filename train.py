@@ -29,9 +29,9 @@ parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=15, metavar='N',
+parser.add_argument('--epochs', type=int, default=20, metavar='N',
                     help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+parser.add_argument('--lr', type=float, default=0.03, metavar='LR',
                     help='learning rate (default: 0.01)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
@@ -45,7 +45,7 @@ parser.add_argument('--margin', type=float, default=0.2, metavar='M',
                     help='margin for triplet loss (default: 0.2)')
 parser.add_argument('--resume', default='', type=str,
                     help='path to latest checkpoint (default: none)')
-parser.add_argument('--name', default='TripletNet', type=str,
+parser.add_argument('--name', default='cifar10', type=str,
                     help='name of experiment')
 
 best_acc = 0
@@ -104,9 +104,6 @@ def main():
         T_CIFAR10(
             root='data/cifar10/', train=True, download=True,
             transform=transforms.Compose([
-                transforms.Pad(4),
-                transforms.RandomCrop(32),
-                transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
             ])), batch_size=args.batch_size, shuffle=True, **kwargs)
@@ -164,7 +161,7 @@ def main():
     checkpoint_file = 'runs/%s/'%(args.name) + 'model_best.pth.tar'
     assert os.path.isfile(checkpoint_file), 'Nothing to load...'
     checkpoint_cl = torch.load(checkpoint_file)
-    model = MNISTNet()
+    model = cifarANDsvhnNet()
     tnet = Tripletnet(model)
     tnet.load_state_dict(checkpoint_cl['state_dict'])
     classifier(tnet.embeddingnet, mnist_train, mnist_test, writer)

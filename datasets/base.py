@@ -3,6 +3,7 @@ import torch.utils.data as data
 import os
 import numpy as np
 import csv
+import errno
 
 class TripletBase(data.Dataset):
     train_triplet_file = 'train_triplets.txt'
@@ -38,11 +39,24 @@ class TripletBase(data.Dataset):
         if self._check_triplets_exists():
             return
         print('Processing Triplet Generation ...')
+        try:
+            os.makedirs(os.path.join(self.root, self.processed_folder))
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise
         if self.train:
-            np_labels = self.train_labels.numpy()
+            if isinstance(self.train_labels, list):
+                np_labels = np.array(self.train_labels)
+            else:
+                np_labels = self.train_labels.numpy()
             filename = self.train_triplet_file
         else:
-            np_labels = self.test_labels.numpy()
+            if isinstance(self.test_labels, list):
+                np_labels = np.array(self.test_labels)
+            else:
+                np_labels = self.test_labels.numpy()
             filename = self.test_triplet_file
         triplets = []
         for class_idx in range(self.num_classes):

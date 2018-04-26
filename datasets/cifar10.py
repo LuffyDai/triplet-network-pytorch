@@ -66,9 +66,9 @@ class T_CIFAR10(TripletBase):
                     self.train_labels += entry['fine_labels']
                 fo.close()
 
-                self.train_data = np.concatenate(self.train_data)
-                self.train_data = self.train_data.reshape((self.n_train_triplets, 3, 32, 32))
-                self.train_data = self.train_data.transpose((0, 2, 3, 1))
+            self.train_data = np.concatenate(self.train_data)
+            self.train_data = self.train_data.reshape((self.n_train_triplets, 3, 32, 32))
+            self.train_data = self.train_data.transpose((0, 2, 3, 1))
         else:
             f = self.test_list[0][0]
             file = os.path.join(self.root, self.base_folder, f)
@@ -138,7 +138,7 @@ class T_CIFAR10(TripletBase):
             target2 = self.target_transform(target2)
             target3 = self.target_transform(target3)
 
-            return (img1, target1), (img2, target2), (img3, target3)
+        return (img1, target1), (img2, target2), (img3, target3)
 
 
 
