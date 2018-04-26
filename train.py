@@ -18,6 +18,8 @@ from logbook import Logger
 from nets import *
 import numpy as np
 from classifier_train import classifier
+from datasets import *
+
 
 logger = Logger('triplet-net')
 
@@ -78,24 +80,47 @@ def main():
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     mnist_train = torch.utils.data.DataLoader(
-        datasets.MNIST(
-            root='data', train=True, download=True,
+        datasets.CIFAR10(
+            root='data/cifar10', train=True, download=True,
             transform=transforms.Compose([
+                transforms.Pad(4),
+                transforms.RandomCrop(32),
+                transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     mnist_test = torch.utils.data.DataLoader(
-        datasets.MNIST(
-            root='data', train=False, download=True,
+        datasets.CIFAR10(
+            root='data/cifar10', train=False, download=True,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
+        batch_size=args.batch_size, shuffle=False, **kwargs)
 
-    model = MNISTNet()
+    train_loader = torch.utils.data.DataLoader(
+        T_CIFAR10(
+            root='data/cifar10/', train=True, download=True,
+            transform=transforms.Compose([
+                transforms.Pad(4),
+                transforms.RandomCrop(32),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])), batch_size=args.batch_size, shuffle=True, **kwargs)
+
+    test_loader = torch.utils.data.DataLoader(
+        T_CIFAR10(
+            root='data/cifar10/', train=False, download=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])), batch_size=args.batch_size, shuffle=False, **kwargs)
+
+
+    model = cifarANDsvhnNet()
     tnet = Tripletnet(model)
     if args.cuda:
         tnet.cuda()
@@ -121,7 +146,7 @@ def main():
     n_parameters = sum([p.data.nelement() for p in tnet.parameters()])
     print('  + Number of params: {}'.format(n_parameters))
 
-    '''for epoch in range(1, args.epochs + 1):
+    for epoch in range(1, args.epochs + 1):
         # train for one epoch
         train(train_loader, tnet, criterion, optimizer, epoch)
         # evaluate on validation set
@@ -134,7 +159,7 @@ def main():
             'epoch': epoch + 1,
             'state_dict': tnet.state_dict(),
             'best_prec1': best_acc,
-        }, is_best)'''
+        }, is_best)
 
     checkpoint_file = 'runs/%s/'%(args.name) + 'model_best.pth.tar'
     assert os.path.isfile(checkpoint_file), 'Nothing to load...'
