@@ -18,7 +18,7 @@ from logbook import Logger
 from nets import *
 import numpy as np
 from classifier_train import classifier
-from datasets import Dataset
+from datasets import get_Dataset
 
 
 logger = Logger('triplet-net')
@@ -68,7 +68,8 @@ def main():
 
     kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}  # change num_workers from 1 to 4
 
-    train_triplet_loader, test_triplet_loader, train_loader, test_loader = Dataset.from_name(args.name)
+    train_triplet_loader, test_triplet_loader, train_loader, test_loader = \
+        get_Dataset(args.name, args.batch_size, **kwargs)
 
     cmd = "model=%s()" % args.net
     local_dict = locals()
