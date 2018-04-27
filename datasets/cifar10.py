@@ -78,6 +78,12 @@ class Dataset(Base):
             self.train_data = np.concatenate(self.train_data)
             self.train_data = self.train_data.reshape((self.n_train_triplets, 3, 32, 32))
             self.train_data = self.train_data.transpose((0, 2, 3, 1))
+
+            # add
+            self.labels_set = set(np.array(self.train_labels))
+            self.label_to_indices = {label: np.where(self.train_labels.numpy() == label)[0]
+                                     for label in self.labels_set}
+
         else:
             f = self.test_list[0][0]
             file = os.path.join(self.root, self.base_folder, f)
@@ -94,7 +100,26 @@ class Dataset(Base):
             fo.close()
             self.test_data = self.test_data.reshape((self.n_test_triplets, 3, 32, 32))
             self.test_data = self.test_data.transpose((0, 2, 3 ,1))
-        super(Dataset, self).__init__()
+
+            # generate fixed  triplets for testing
+            self.labels_set = set(np.array(self.test_labels))
+            self.label_to_indices = {label: np.where(self.test_labels.numpy() == label)[0]
+                                     for label in self.labels_set}
+
+            random_state = np.random.RandomState(29)
+
+            triplets = [[i,
+                         random_state.choice(self.label_to_indices[self.test_labels[i]]),
+                         random_state.choice(self.label_to_indices[
+                                                 np.random.choice(
+                                                     list(self.labels_set - set([self.test_labels[i]]))
+                                                 )
+                                             ])
+                         ]
+                        for i in range(len(self.test_data))]
+            self.test_triplets = triplets
+
+        # super(Dataset, self).__init__()
 
     def _check_integrity(self):
         root = self.root
@@ -125,7 +150,7 @@ class Dataset(Base):
 
     def __getitem__(self, index):
         if self.is_triplet:
-            if self.train:
+            '''if self.train:
                 idx1, idx2, idx3 = self.triplets_train[index]
                 img1, img2, img3 = self.train_data[idx1], self.train_data[idx2], self.train_data[idx3]
                 target1, target2, target3 = self.train_labels[idx1], self.train_labels[idx2], self.train_labels[idx3]
@@ -148,6 +173,32 @@ class Dataset(Base):
                 target2 = self.target_transform(target2)
                 target3 = self.target_transform(target3)
 
+            return (img1, target1), (img2, target2), (img3, target3)'''
+            if self.train:
+                img1, target1 = self.train_data[index], self.train_labels[index]
+                positive_index = index
+                while positive_index == index:
+                    positive_index = np.random.choice(self.label_to_indices[target1])
+                negative_label = np.random.choice(list(self.labels_set - set([target1])))
+                negative_index = np.random.choice(self.label_to_indices[negative_label])
+                img2 = self.train_data[positive_index]
+                img3 = self.train_data[negative_index]
+                target2, target3 = self.train_labels[positive_index], self.train_labels[negative_index]
+            else:
+                img1 = self.test_data[self.test_triplets[index][0]]
+                img2 = self.test_data[self.test_triplets[index][1]]
+                img3 = self.test_data[self.test_triplets[index][2]]
+                target1 = self.test_labels[self.test_triplets[index][0]]
+                target2 = self.test_labels[self.test_triplets[index][1]]
+                target3 = self.test_labels[self.test_triplets[index][2]]
+
+            img1 = Image.fromarray(img1)
+            img2 = Image.fromarray(img2)
+            img2 = Image.fromarray(img3)
+            if self.transform is not None:
+                img1 = self.transform(img1)
+                img2 = self.transform(img2)
+                img3 = self.transform(img3)
             return (img1, target1), (img2, target2), (img3, target3)
         else:
             if self.train:

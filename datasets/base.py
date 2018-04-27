@@ -28,9 +28,9 @@ class Dataset(data.Dataset, Base):
 
     def __len__(self):
         if self.train:
-            return len(self.triplets_train)
+            return len(self.train_data)
         else:
-            return len(self.triplets_test)
+            return len(self.test_data)
 
     def _check_triplets_exists(self):
         return os.path.exists(os.path.join(self.root, self.processed_folder, self.train_triplet_file)) and \
