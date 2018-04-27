@@ -27,10 +27,16 @@ class Dataset(data.Dataset, Base):
             self.triplets_test = triplets
 
     def __len__(self):
-        if self.train:
-            return len(self.train_data)
+        if self.is_triplet:
+            if self.train:
+                return len(self.triplets_train)
+            else:
+                return len(self.triplets_test)
         else:
-            return len(self.test_data)
+            if self.train:
+                return len(self.train_data)
+            else:
+                return len(self.test_data)
 
     def _check_triplets_exists(self):
         return os.path.exists(os.path.join(self.root, self.processed_folder, self.train_triplet_file)) and \
@@ -64,6 +70,7 @@ class Dataset(data.Dataset, Base):
             else:
                 np_labels = self.test_labels.numpy()
             filename = self.test_triplet_file
+
         triplets = []
         for class_idx in range(self.num_classes):
             a = np.random.choice(np.where(np_labels == class_idx)[0], int(ntriplets / self.num_classes), replace=True)
