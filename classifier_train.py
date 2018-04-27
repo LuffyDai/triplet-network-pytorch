@@ -17,7 +17,7 @@ def classifier(embedding, train_data, val_data, writer,
                cuda=True,
                log_interval=100,
                test_interval=1,
-               lr=0.1,
+               lr=0.01,
                logdir='log/default'):
     assert isinstance(embedding, nn.Module), 'Embedding is not a module'
     model = Classifier(embedding)

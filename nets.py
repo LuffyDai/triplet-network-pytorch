@@ -13,13 +13,13 @@ class cifarANDsvhnNet(nn.Module):
         self.conv4 = nn.Conv2d(256, 128, kernel_size=2)
 
     def forward(self, x):
-        x = F.max_pool2d(F.relu(self.conv1(x)), 2)
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.dropout(x, p=0.25, training=self.training)
-        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
         x = F.dropout(x, p=0.25, training=self.training)
-        x = F.max_pool2d(F.relu(self.conv3(x)), 2)
+        x = F.relu(F.max_pool2d(self.conv3(x), 2))
         x = F.dropout(x, p=0.25, training=self.training)
-        x = self.conv4(x)
+        x = F.relu(self.conv4(x))
         x = x.view(-1, 128)
         return x
 
