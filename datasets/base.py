@@ -51,12 +51,16 @@ class Dataset(data.Dataset, Base):
         if self.train:
             if isinstance(self.train_labels, list):
                 np_labels = np.array(self.train_labels)
+            elif isinstance(self.train_labels, np.ndarray):
+                np_labels = self.train_labels
             else:
                 np_labels = self.train_labels.numpy()
             filename = self.train_triplet_file
         else:
             if isinstance(self.test_labels, list):
                 np_labels = np.array(self.test_labels)
+            elif isinstance(self.test_labels, np.ndarray):
+                np_labels = self.test_labels
             else:
                 np_labels = self.test_labels.numpy()
             filename = self.test_triplet_file

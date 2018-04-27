@@ -36,38 +36,40 @@ class Dataset(Base):
             self.transform = transform
         self.target_transform = target_transform
         self.train=train
-        
+
         if self.train:
             self.split = 'train'
         else:
             self.split = 'test'
-        
+
         self.url = self.split_list[self.split][0]
         self.filename = self.split_list[self.split][1]
         self.file_md5 = self.split_list[self.split][2]
-        
+
         if download:
             self.download()
-        
+
         if not self._check_integrity():
-            raise RuntimeError('Dataset not found or corrupted.' + 
+            raise RuntimeError('Dataset not found or corrupted.' +
                                'You can use download=True to download it')
-        
+
         import scipy.io as sio
-        
+
         loaded_mat = sio.loadmat(os.path.join(self.root, self.filename))
-        
+
         if self.train:
             self.train_data = loaded_mat['X']
             self.train_labels = loaded_mat['y'].astype(np.int64).squeeze()
             np.place(self.train_labels, self.train_labels == 10, 0)
             self.train_data = np.transpose(self.train_data, (3, 2, 0, 1))
+            self.n_train_triplets = len(self.train_data)
         else:
             self.test_data = loaded_mat['X']
             self.test_labels = loaded_mat['y'].astype(np.int64).squeeze()
             np.place(self.test_labels, self.test_labels == 10, 0)
             self.test_data = np.transpose(self.test_data, (3, 2, 0, 1))
-        
+            self.n_test_triplets =  len(self.test_data)
+
         super(Dataset, self).__init__()
 
     def _check_integrity(self):
@@ -127,7 +129,7 @@ class Dataset(Base):
 
             return img, target
 
-            
-        
-        
+
+
+
 

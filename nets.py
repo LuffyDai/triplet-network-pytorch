@@ -19,7 +19,7 @@ class cifarANDsvhnNet(nn.Module):
         x = F.dropout(x, p=0.25, training=self.training)
         x = F.max_pool2d(F.relu(self.conv3(x)), 2)
         x = F.dropout(x, p=0.25, training=self.training)
-        x = F.relu(self.conv4(x))
+        x = self.conv4(x)
         x = x.view(-1, 128)
         return x
 

@@ -28,8 +28,6 @@ class Dataset(Base):
     ]
     splits = ('train', 'train+unlabeled', 'unlabeled', 'test')
     num_classes = 10
-    n_train_triplets = 50000
-    n_test_triplets = 10000
     name = 'stl10'
 
     def __init__(self, root, is_triplet=True, train=True,
@@ -62,9 +60,11 @@ class Dataset(Base):
         if self.train:
             self.train_data, self.train_labels = self.__loadfile(
                 self.train_list[0][0], self.train_list[1][0])
+            self.n_train_triplets = self.train_data.shape[0]
         else:
             self.test_data, self.test_labels = self.__loadfile(
                 self.test_list[0][0], self.test_list[1][0])
+            self.n_test_triplets = self.test_data.shape[0]
 
         class_file = os.path.join(self.root, self.base_folder, self.class_names_file)
         if os.path.isfile(class_file):

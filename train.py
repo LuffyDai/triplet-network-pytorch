@@ -31,7 +31,7 @@ parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=20, metavar='N',
                     help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.03, metavar='LR',
+parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
@@ -118,8 +118,10 @@ def main():
     checkpoint_file = 'runs/%s/'%(args.name) + 'model_best.pth.tar'
     assert os.path.isfile(checkpoint_file), 'Nothing to load...'
     checkpoint_cl = torch.load(checkpoint_file)
-    model = cifarANDsvhnNet()
-    tnet = Tripletnet(model)
+    cmd = "model_cl=%s()" % args.net
+    exec(cmd, globals(), local_dict)
+    model_cl = local_dict['model_cl']
+    tnet = Tripletnet(model_cl)
     tnet.load_state_dict(checkpoint_cl['state_dict'])
     classifier(tnet.embeddingnet, train_loader, test_loader, writer)
 

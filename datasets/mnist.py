@@ -137,7 +137,7 @@ class Dataset(Base):
                 label = self.train_labels[index]
             else:
                 img = self.test_data[index]
-                label = self.train_labels[index]
+                label = self.test_labels[index]
 
             img = Image.fromarray(img.numpy(), mode='L')
 

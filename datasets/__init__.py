@@ -47,4 +47,7 @@ def get_Dataset(name, batch_size, **kwargs):
     return train_triplet_loader, test_triplet_loader, \
            train_loader, test_loader
 
-
+from . import cifar10, mnist, stl10
+assert cifar10, mnist and stl10
+from . import svhn
+assert svhn
