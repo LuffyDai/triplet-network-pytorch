@@ -19,6 +19,7 @@ from nets import *
 import numpy as np
 from classifier_train import classifier
 from datasets import get_Dataset
+from triplet_datasets import get_TripletDataset
 from losses import TripletLossSoftmax
 
 
@@ -70,13 +71,13 @@ def main():
     kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}  # change num_workers from 1 to 4
 
     train_triplet_loader, test_triplet_loader, train_loader, test_loader = \
-        get_Dataset(args.name, args.batch_size, **kwargs)
+        get_TripletDataset(args.name, args.batch_size, **kwargs)
 
     cmd = "model=%s()" % args.net
     local_dict = locals()
     exec(cmd, globals(), local_dict)
     model = local_dict['model']
-    tnet = Tripletnet(model)
+    tnet = Tripletnet(Classifier(model))
     if args.cuda:
         tnet.cuda()
 

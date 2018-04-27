@@ -20,7 +20,7 @@ def classifier(embedding, train_data, val_data, writer,
                lr=0.01,
                logdir='log/default'):
     assert isinstance(embedding, nn.Module), 'Embedding is not a module'
-    model = Classifier(embedding)
+    model = Classifier(embedding, for_metric=False)
     if not os.path.exists(logdir):
         os.makedirs(logdir)
     n_iter = 0

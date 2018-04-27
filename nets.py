@@ -79,11 +79,12 @@ class Net(nn.Module):
         return self.fc2(x)
 
 class Classifier(nn.Module):
-    def __init__(self, embedding, classes=10):
+    def __init__(self, embedding, for_metric=True,classes=10):
         super(Classifier, self).__init__()
         self.embedding = embedding
-        for p in self.embedding.parameters():
-            p.requires_grad=False
+        if not for_metric:
+            for p in self.embedding.parameters():
+                p.requires_grad=False
         self.fc = nn.Linear(128, classes)
 
     def forward(self, x):
