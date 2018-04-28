@@ -3,6 +3,7 @@ import torch.utils.data as data
 import os
 import numpy as np
 from . import TripletDataset as Base
+from PIL import Image
 
 
 class TripletDataset(data.Dataset, Base):
@@ -16,7 +17,7 @@ class TripletDataset(data.Dataset, Base):
             self.train_data = self.base_dataset.train_data
             if isinstance(self.train_labels, list):
                 self.labels_set = set(np.array(self.train_labels))
-                self.label_to_indices = {label: np.where(np.array(self.train_labels) == label)[0] 
+                self.label_to_indices = {label: np.where(np.array(self.train_labels) == label)[0]
                                          for label in self.labels_set}
             elif isinstance(self.train_labels, np.ndarray):
                 self.labels_set = set(self.train_labels)
@@ -27,12 +28,12 @@ class TripletDataset(data.Dataset, Base):
                 self.label_to_indices = {label: np.where(self.train_labels.numpy() == label)[0]
                                          for label in self.labels_set}
         else:
-            self.test_labels = self.base_datast.test_labels
+            self.test_labels = self.base_dataset.test_labels
             self.test_data = self.base_dataset.test_data
             # generate fixed triplets for testing
             if isinstance(self.test_labels, list):
                 self.labels_set = set(np.array(self.test_labels))
-                self.label_to_indices = {label: np.where(np.array(self.test_labels) == label)[0] 
+                self.label_to_indices = {label: np.where(np.array(self.test_labels) == label)[0]
                                          for label in self.labels_set}
             elif isinstance(self.test_labels, np.ndarray):
                 self.labels_set = set(self.test_labels)
@@ -43,7 +44,7 @@ class TripletDataset(data.Dataset, Base):
                 self.label_to_indices = {label: np.where(self.test_labels.numpy() == label)[0]
                                          for label in self.labels_set}
 
-            random_state = np.random.RandomState(29)
+            random_state = np.random.RandomState(20)
 
             triplets = [[i,
                          random_state.choice(self.label_to_indices[self.test_labels[i]]),
@@ -71,6 +72,25 @@ class TripletDataset(data.Dataset, Base):
             label1 = self.test_labels[self.test_triplets[index][0]]
             label2 = self.test_labels[self.test_triplets[index][2]]
             label3 = self.test_labels[self.test_triplets[index][1]]
+
+        if self.name == 'mnist':
+            img1 = Image.fromarray(img1.numpy(), mode='L')
+            img2 = Image.fromarray(img2.numpy(), mode='L')
+            img3 = Image.fromarray(img3.numpy(), mode='L')
+        elif self.name == 'cifar10':
+            img1 = Image.fromarray(img1)
+            img2 = Image.fromarray(img2)
+            img3 = Image.fromarray(img3)
+        else:
+            img1 = Image.fromarray(np.transpose(img1, (1, 2, 0)))
+            img2 = Image.fromarray(np.transpose(img2, (1, 2, 0)))
+            img3 = Image.fromarray(np.transpose(img3, (1, 2, 0)))
+
+        if self.transform is not None:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+            img3 = self.transform(img3)
+
         return (img1, label1), (img2, label2), (img3, label3)
 
     def __len__(self):

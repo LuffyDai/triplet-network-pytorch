@@ -14,11 +14,11 @@ class cifarANDsvhnNet(nn.Module):
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(F.max_pool2d(self.conv3(x), 2))
-        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.dropout(x, p=0.5, training=self.training)
         x = F.relu(self.conv4(x))
         x = x.view(-1, 128)
         return x

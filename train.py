@@ -77,7 +77,7 @@ def main():
     local_dict = locals()
     exec(cmd, globals(), local_dict)
     model = local_dict['model']
-    tnet = Tripletnet(Classifier(model))
+    tnet = Tripletnet(model)
     if args.cuda:
         tnet.cuda()
 
@@ -96,7 +96,7 @@ def main():
 
     cudnn.benchmark = True
 
-    criterion = TripletLossSoftmax(margin=args.margin)
+    criterion = torch.nn.MarginRankingLoss(margin=args.margin)
     optimizer = optim.SGD(tnet.parameters(), lr=args.lr, momentum=args.momentum)
 
     n_parameters = sum([p.data.nelement() for p in tnet.parameters()])
@@ -153,8 +153,8 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
             target = target.cuda()
         target = Variable(target)
 
-        loss_triplet = criterion(dista, distb)
-        # loss_triplet = criterion(dista, distb, target)
+        # loss_triplet = criterion(dista, distb)
+        loss_triplet = criterion(dista, distb, target)
         loss_embedd = embedded_x.norm(2) + embedded_y.norm(2) + embedded_z.norm(2)
         loss = loss_triplet + 0.001 * loss_embedd
         #loss = loss_triplet
@@ -206,8 +206,8 @@ def test(test_loader, tnet, criterion, epoch):
         if args.cuda:
             target = target.cuda()
         target = Variable(target)
-        test_loss = criterion(dista, distb).data[0]
-        # test_loss =  criterion(dista, distb, target).data[0]
+        #test_loss = criterion(dista, distb).data[0]
+        test_loss =  criterion(dista, distb, target).data[0]
 
         # measure accuracy and record loss
         acc = accuracy(dista, distb)
