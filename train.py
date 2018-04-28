@@ -21,7 +21,7 @@ from classifier_train import classifier
 from datasets import get_Dataset
 from triplet_datasets import get_TripletDataset
 from losses import TripletLossSoftmax
-from . import Context
+from context import Context
 
 
 logger = Logger('triplet-net')
