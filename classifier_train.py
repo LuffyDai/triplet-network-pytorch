@@ -10,6 +10,10 @@ import time
 import os
 from nets import *
 from utils.misc import model_snapshot
+from logbook import Logger
+
+
+logger = Logger('classification')
 
 
 def classifier(embedding, train_data, val_data, writer,
@@ -53,7 +57,7 @@ def classifier(embedding, train_data, val_data, writer,
                     acc = correct * 1.0 / len(data)
                     writer.add_scalar('classifier_acc', acc, n_iter)
                     writer.add_scalar('classifier_loss', loss.data[0], n_iter)
-                    print('Train Epoch: {} [{}/{}] Loss: {:.6f} Acc: {:.4f}'.format(
+                    logger.info('Train Epoch: {} [{}/{}] Loss: {:.6f} Acc: {:.4f}'.format(
                         epoch, batch_idx * len(data), len(train_data.dataset),
                         loss.data[0], acc
                     ))
@@ -62,7 +66,7 @@ def classifier(embedding, train_data, val_data, writer,
             speed_epoch = elapse_time / (epoch + 1)
             speed_batch = speed_epoch / len(train_data)
             eta = speed_epoch * epochs - elapse_time
-            print('Elapsed {:.2f}s, {:.2f}s/epoch, {:.2f}s/batch, ets{:.2f}s'.format(
+            logger.info('Elapsed {:.2f}s, {:.2f}s/epoch, {:.2f}s/batch, ets{:.2f}s'.format(
                 elapse_time, speed_epoch, speed_batch, eta))
             model_snapshot(model, os.path.join(logdir, 'latest.pth'))
 
@@ -82,7 +86,7 @@ def classifier(embedding, train_data, val_data, writer,
 
                 test_loss = test_loss / len(val_data)
                 acc = 100. * correct / len(val_data.dataset)
-                print('\tTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+                logger.info('\tTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
                     test_loss, correct, len(val_data.dataset), acc))
                 if acc > best_acc:
                     new_file = os.path.join(logdir, 'best-{}.pth'.format(epoch))
@@ -93,7 +97,7 @@ def classifier(embedding, train_data, val_data, writer,
         import traceback
         traceback.print_exc()
     finally:
-        print("Total Elapse: {:.2f}, Best Result: {:.3f}%".format(time.time() - t_begin, best_acc))
+        logger.info("Total Elapse: {:.2f}, Best Result: {:.3f}%".format(time.time() - t_begin, best_acc))
 
 
 

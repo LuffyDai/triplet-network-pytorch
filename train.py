@@ -21,6 +21,7 @@ from classifier_train import classifier
 from datasets import get_Dataset
 from triplet_datasets import get_TripletDataset
 from losses import TripletLossSoftmax
+from . import Context
 
 
 logger = Logger('triplet-net')
@@ -47,6 +48,8 @@ parser.add_argument('--margin', type=float, default=1.0, metavar='M',
                     help='margin for triplet loss (default: 0.2)')
 parser.add_argument('--resume', default='', type=str,
                     help='path to latest checkpoint (default: none)')
+parser.add_argument('--log', default='log', type=str,
+                    help='filename to log')
 parser.add_argument('--name', default='cifar10', type=str,
                     help='name of experiment')
 parser.add_argument('--net', default='cifarANDsvhnNet', type=str,
@@ -101,31 +104,33 @@ def main():
 
     n_parameters = sum([p.data.nelement() for p in tnet.parameters()])
     print('  + Number of params: {}'.format(n_parameters))
+    log_directory = "runs/%s/" % (args.name)
 
-    for epoch in range(1, args.epochs + 1):
-        # train for one epoch
-        train(train_triplet_loader, tnet, criterion, optimizer, epoch)
-        # evaluate on validation set
-        acc = test(test_triplet_loader, tnet, criterion, epoch)
+    with Context(os.path.join(log_directory, args.log), parallel=True):
+        for epoch in range(1, args.epochs + 1):
+            # train for one epoch
+            train(train_triplet_loader, tnet, criterion, optimizer, epoch)
+            # evaluate on validation set
+            acc = test(test_triplet_loader, tnet, criterion, epoch)
 
-        # remember best acc and save checkpoint
-        is_best = acc > best_acc
-        best_acc = max(acc, best_acc)
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'state_dict': tnet.state_dict(),
-            'best_prec1': best_acc,
-        }, is_best)
+            # remember best acc and save checkpoint
+            is_best = acc > best_acc
+            best_acc = max(acc, best_acc)
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'state_dict': tnet.state_dict(),
+                'best_prec1': best_acc,
+            }, is_best)
 
-    checkpoint_file = 'runs/%s/'%(args.name) + 'model_best.pth.tar'
-    assert os.path.isfile(checkpoint_file), 'Nothing to load...'
-    checkpoint_cl = torch.load(checkpoint_file)
-    cmd = "model_cl=%s()" % args.net
-    exec(cmd, globals(), local_dict)
-    model_cl = local_dict['model_cl']
-    tnet = Tripletnet(model_cl)
-    tnet.load_state_dict(checkpoint_cl['state_dict'])
-    classifier(tnet.embeddingnet, train_loader, test_loader, writer)
+        checkpoint_file = 'runs/%s/'%(args.name) + 'model_best.pth.tar'
+        assert os.path.isfile(checkpoint_file), 'Nothing to load...'
+        checkpoint_cl = torch.load(checkpoint_file)
+        cmd = "model_cl=%s()" % args.net
+        exec(cmd, globals(), local_dict)
+        model_cl = local_dict['model_cl']
+        tnet = Tripletnet(model_cl)
+        tnet.load_state_dict(checkpoint_cl['state_dict'])
+        classifier(tnet.embeddingnet, train_loader, test_loader, writer, logdir=log_directory)
 
     writer.close()
 
@@ -167,8 +172,7 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
         accs.update(acc, data1.size(0))
         emb_norms.update(loss_embedd.data[0]/3, data1.size(0))
 
-        writer.add_scalar('train_loss', loss_triplet.data[0], n_iter)
-        writer.add_scalar('train_acc', acc, n_iter)
+
         #label_batch = Variable(label1, requires_grad=False).long()
         #writer.add_embedding(embedded_x.data, metadata=label_batch.data, global_step=n_iter)
         #writer.add_embedding(embedded_y, metadata=label2.data, label_img=data2.data, global_step=n_iter)
@@ -180,13 +184,15 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
         optimizer.step()
 
         if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{}]\t'
+            logger.info('Train Epoch: {} [{}/{}]\t'
                   'Loss: {:.4f} ({:.4f}) \t'
                   'Acc: {:.2f}% ({:.2f}%) \t'
                   'Emb_Norm: {:.2f} ({:.2f})'.format(
                 epoch, batch_idx * len(data1), len(train_loader.dataset),
                 losses.val, losses.avg,
                 100. * accs.val, 100. * accs.avg, emb_norms.val, emb_norms.avg))
+            writer.add_scalar('train_loss', loss_triplet.data[0], n_iter)
+            writer.add_scalar('train_acc', acc, n_iter)
     # log avg values to somewhere
 
 def test(test_loader, tnet, criterion, epoch):
@@ -222,7 +228,7 @@ def test(test_loader, tnet, criterion, epoch):
 
     label_batch = Variable(label, requires_grad=False).long()
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
+    logger.info('\nTest set: Average loss: {:.4f}, Accuracy: {:.2f}%\n'.format(
         losses.avg, 100. * accs.avg))
     writer.add_scalar('test_loss', losses.avg, epoch)
     writer.add_scalar('test_acc', accs.avg, epoch)
