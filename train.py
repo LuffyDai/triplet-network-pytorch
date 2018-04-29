@@ -2,6 +2,7 @@ from __future__ import print_function
 import argparse
 import os
 import shutil
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -54,6 +55,8 @@ parser.add_argument('--name', default='cifar10', type=str,
                     help='name of experiment')
 parser.add_argument('--net', default='cifarANDsvhnNet', type=str,
                     help='name of network to use')
+parser.add_argument('--use-fc', default=False,
+                    help='use last fc layer')
 
 best_acc = 0
 n_iter = 0
@@ -80,7 +83,11 @@ def main():
     local_dict = locals()
     exec(cmd, globals(), local_dict)
     model = local_dict['model']
-    tnet = Tripletnet(model)
+    print(args.use_fc)
+    if not args.use_fc:
+        tnet = Tripletnet(model)
+    else:
+        tnet = Tripletnet(Classifier(model))
     if args.cuda:
         tnet.cuda()
 
@@ -104,7 +111,8 @@ def main():
 
     n_parameters = sum([p.data.nelement() for p in tnet.parameters()])
     print('  + Number of params: {}'.format(n_parameters))
-    log_directory = "runs/%s/" % (args.name)
+    time_string = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
+    log_directory = "runs/%s/" % (time_string + '_' + args.name)
 
     with Context(os.path.join(log_directory, args.log), parallel=True):
         for epoch in range(1, args.epochs + 1):
@@ -128,9 +136,13 @@ def main():
         cmd = "model_cl=%s()" % args.net
         exec(cmd, globals(), local_dict)
         model_cl = local_dict['model_cl']
-        tnet = Tripletnet(model_cl)
+        if not args.use_fc:
+            tnet = Tripletnet(model_cl)
+        else:
+            tnet = Tripletnet(Classifier(model_cl))
         tnet.load_state_dict(checkpoint_cl['state_dict'])
-        classifier(tnet.embeddingnet, train_loader, test_loader, writer, logdir=log_directory)
+        classifier(tnet.embeddingnet if not args.use_fc else tnet.embeddingnet.embedding,
+                   train_loader, test_loader, writer, logdir=log_directory)
 
     writer.close()
 

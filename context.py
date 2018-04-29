@@ -17,6 +17,6 @@ def Context(log=None, parallel=False, level=None):
         else:
             import joblib as jb
             from multiprocessing import cpu_count
-            with jb.Paraller(n_jobs=cpu_count()) as par:
+            with jb.Parallel(n_jobs=cpu_count()) as par:
                 Context.parallel = par
                 yield
