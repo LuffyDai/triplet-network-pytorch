@@ -4,6 +4,7 @@ import os
 os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 
 ROOT = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+CACHE = os.path.join(ROOT, '.cache')
 
 from contextlib import contextmanager
 
