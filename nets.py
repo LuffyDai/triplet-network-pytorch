@@ -4,9 +4,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class cifarANDsvhnNet(nn.Module):
+class CIFARNet(nn.Module):
     def __init__(self):
-        super(cifarANDsvhnNet, self).__init__()
+        super(CIFARNet, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=5)
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3)
         self.conv3 = nn.Conv2d(128, 256, kernel_size=3)
@@ -23,6 +23,29 @@ class cifarANDsvhnNet(nn.Module):
         x = x.view(-1, 128)
         return x
 
+
+
+class SVHNNet(nn.Module):
+    def __init__(self):
+        super(SVHNNet, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=5)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=3)
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=3)
+        self.conv4 = nn.Conv2d(256, 128, kernel_size=2)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = F.relu(F.max_pool2d(self.conv3(x), 2))
+        x = F.dropout(x, p=0.5, training=self.training)
+        x = F.relu(self.conv4(x))
+        x = x.view(-1, 128)
+        return x
+
+
+
 class STL10Net(nn.Module):
     def __init__(self):
         super(STL10Net, self).__init__()
@@ -33,11 +56,11 @@ class STL10Net(nn.Module):
 
     def forward(self, x):
         x = F.max_pool2d(F.relu(self.conv1(x)), 2)
-        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.dropout(x, p=0.1, training=self.training)
         x = F.max_pool2d(F.relu(self.conv2(x)), 2)
-        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.dropout(x, p=0.1, training=self.training)
         x = F.max_pool2d(F.relu(self.conv3(x)), 2)
-        x = F.dropout(x, p=0.25, training=self.training)
+        x = F.dropout(x, p=0.1, training=self.training)
         x = F.relu(self.conv4(x))
         x = x.view(-1, 128)
         return x
@@ -92,9 +115,9 @@ class Classifier(nn.Module):
         x = self.fc(x)
         return x
 
-__all__ = ['MNISTNet', 'cifarANDsvhnNet',
-           'STL10Net', 'Net',
-           'Classifier']
+__all__ = ['MNISTNet', 'CIFARNet',
+           'SVHNNet', 'STL10Net',
+           'Net', 'Classifier']
 
 
 

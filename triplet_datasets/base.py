@@ -9,12 +9,28 @@ from PIL import Image
 class TripletDataset(data.Dataset, Base):
 
     def __init__(self):
-        self.train = self.base_dataset.train
+        if hasattr(self.base_dataset, 'train'):
+            self.train = self.base_dataset.train
+            if self.train:
+                self.train_labels = self.base_dataset.train_labels
+                self.train_data = self.base_dataset.train_data
+            else:
+                self.test_labels = self.base_dataset.test_labels
+                self.test_data = self.base_dataset.test_data
+        else:
+            if self.base_dataset.split == 'train':
+                self.train = True
+                self.train_labels = self.base_dataset.labels
+                self.train_data = self.base_dataset.data
+            else:
+                self.train = False
+                self.test_labels = self.base_dataset.labels
+                self.test_data = self.base_dataset.data
+
         self.transform = self.base_dataset.transform
+        self.target_transform = self.base_dataset.target_transform
 
         if self.train:
-            self.train_labels = self.base_dataset.train_labels
-            self.train_data = self.base_dataset.train_data
             if isinstance(self.train_labels, list):
                 self.labels_set = set(np.array(self.train_labels))
                 self.label_to_indices = {label: np.where(np.array(self.train_labels) == label)[0]
@@ -28,8 +44,6 @@ class TripletDataset(data.Dataset, Base):
                 self.label_to_indices = {label: np.where(self.train_labels.numpy() == label)[0]
                                          for label in self.labels_set}
         else:
-            self.test_labels = self.base_dataset.test_labels
-            self.test_data = self.base_dataset.test_data
             # generate fixed triplets for testing
             if isinstance(self.test_labels, list):
                 self.labels_set = set(np.array(self.test_labels))
@@ -90,6 +104,11 @@ class TripletDataset(data.Dataset, Base):
             img1 = self.transform(img1)
             img2 = self.transform(img2)
             img3 = self.transform(img3)
+
+        if self.target_transform is not None:
+            label1 = self.target_transform(label1)
+            label2 = self.target_transform(label2)
+            label3 = self.target_transform(label3)
 
         return (img1, label1), (img2, label2), (img3, label3)
 

@@ -53,7 +53,7 @@ parser.add_argument('--log', default='log', type=str,
                     help='filename to log')
 parser.add_argument('--name', default='cifar10', type=str,
                     help='name of experiment')
-parser.add_argument('--net', default='cifarANDsvhnNet', type=str,
+parser.add_argument('--net', default='CIFARNet', type=str,
                     help='name of network to use')
 parser.add_argument('--use-fc', default=False,
                     help='use last fc layer')
@@ -66,7 +66,7 @@ def main():
 
     global args, best_acc, writer
     args = parser.parse_args()
-    writer = SummaryWriter(comment=args.name + '_triplet_network')
+    writer = SummaryWriter(comment='_' + args.name + '_triplet_network')
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
     if args.cuda:
@@ -74,7 +74,8 @@ def main():
     # global plotter
     # plotter = VisdomLinePlotter(env_name=args.name)
 
-    kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}  # change num_workers from 1 to 4
+    kwargs = {'num_workers': 1 if args.name == 'stl10' else 4,
+              'pin_memory': True} if args.cuda else {}  # change num_workers from 1 to 4
 
     train_triplet_loader, test_triplet_loader, train_loader, test_loader = \
         get_TripletDataset(args.name, args.batch_size, **kwargs)
@@ -174,7 +175,8 @@ def train(train_loader, tnet, criterion, optimizer, epoch):
         loss_triplet = criterion(dista, distb, target)
         loss_embedd = embedded_x.norm(2) + embedded_y.norm(2) + embedded_z.norm(2)
         loss = loss_triplet + 0.001 * loss_embedd
-        #loss = loss_triplet
+        if args.name == 'svhn' or 'stl10':
+            loss = loss_triplet
 
         n_iter += 1
 
@@ -244,7 +246,8 @@ def test(test_loader, tnet, criterion, epoch):
         losses.avg, 100. * accs.avg))
     writer.add_scalar('test_loss', losses.avg, epoch)
     writer.add_scalar('test_acc', accs.avg, epoch)
-    writer.add_embedding(out, metadata=label_batch.data, global_step=epoch)
+    if epoch == 1 or epoch == args.epochs:
+        writer.add_embedding(out, metadata=label_batch.data, global_step=epoch)
 
     return accs.avg
 
